@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { Card, Text, Button, SegmentedButtons, Divider } from 'react-native-paper';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import { LineChart } from 'react-native-chart-kit';
 
 // Emotion configuration
 const emotions = {
@@ -49,13 +52,27 @@ const chartColors = Object.values(emotions).map(e => e.color);
 const chartHeight = 180;
 const chartWidth = Math.max(Dimensions.get('window').width, 480);
 
+const chartLabels = mockDailyData.map(d => d.time);
+
+const emotionKeys = Object.keys(emotions);
+
+const chartDatasets = emotionKeys.map((key, idx) => ({
+  data: mockDailyData.map(d => d[key]),
+  color: () => emotions[key].color,
+  strokeWidth: 2,
+  withDots: false,
+}));
+
+const chartLegend = emotionKeys.map(key => emotions[key].name);
+
 // @param: {void} - No parameters.
 // @description: Renders the Emotions screen with a custom chart and summary.
 // @returns: {JSX.Element} - The Emotions screen component.
 // @updates: Displays emotion data and summary for the selected period.
 const EmotionsScreen: React.FC = () => {
   const [timePeriod, setTimePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [selectedDate] = useState('2024-06-16');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const getCurrentData = () => {
     switch (timePeriod) {
@@ -103,44 +120,96 @@ const EmotionsScreen: React.FC = () => {
         </Text>
         <Card style={{ marginBottom: 16 }}>
           <Card.Content>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="titleMedium">{getTimePeriodLabel()} Emotion Graph</Text>
-              <SegmentedButtons
-                value={timePeriod}
-                onValueChange={v => setTimePeriod(v as 'daily' | 'weekly' | 'monthly')}
-                buttons={[
-                  { value: 'daily', label: 'Daily' },
-                  { value: 'weekly', label: 'Weekly' },
-                  { value: 'monthly', label: 'Monthly' },
-                ]}
-                style={{ marginLeft: 8 }}
-              />
+            <View style={{ marginBottom: 8 }}>
+              <Text variant="titleMedium" style={{ marginBottom: 8 }}>{getTimePeriodLabel()} Emotion Graph</Text>
+              <View style={{
+                borderWidth: 2,
+                borderColor: '#000',
+                borderRadius: 8,
+                marginBottom: 8,
+                overflow: 'hidden'
+              }}>
+                <Picker
+                  selectedValue={timePeriod}
+                  style={{ width: '100%', fontWeight: 'bold', color: '#000' }}
+                  onValueChange={(itemValue: 'daily' | 'weekly' | 'monthly') => setTimePeriod(itemValue)}
+                  mode="dropdown"
+                >
+                  <Picker.Item label="Daily" value="daily" />
+                  <Picker.Item label="Weekly" value="weekly" />
+                  <Picker.Item label="Monthly" value="monthly" />
+                </Picker>
+              </View>
+              <Text
+                onPress={() => setShowDatePicker(true)}
+                style={{
+                  borderWidth: 2,
+                  borderColor: '#1976d2',
+                  borderRadius: 8,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  color: '#1976d2',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  backgroundColor: '#e3f2fd',
+                  marginBottom: 8,
+                  textAlign: 'center',
+                  overflow: 'hidden'
+                }}
+              >
+                {selectedDate.toLocaleDateString()}
+              </Text>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event: DateTimePickerEvent, date?: Date) => {
+                    setShowDatePicker(false);
+                    if (date) setSelectedDate(date);
+                  }}
+                />
+              )}
             </View>
             <Divider style={{ marginVertical: 12 }} />
             {/* Simple custom chart: lines for each emotion, dots for values */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: chartHeight, minWidth: chartWidth }}>
-                {currentData.map((dataPoint, idx) => (
-                  <View key={dataPoint.time} style={{ alignItems: 'center', marginHorizontal: 8 }}>
-                    {/* Dots for each emotion */}
-                    {Object.entries(emotions).map(([key, emotion], i) => (
-                      <View
-                        key={key}
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
-                          backgroundColor: emotion.color,
-                          opacity: (dataPoint[key as keyof typeof dataPoint] as number) > 0 ? 1 : 0.2,
-                          marginBottom: 2,
-                          marginTop: i === 0 ? chartHeight - (dataPoint[key as keyof typeof dataPoint] as number) * chartHeight : 0,
-                        }}
-                      />
-                    ))}
-                    <Text style={{ fontSize: 12, marginTop: 4 }}>{dataPoint.time}</Text>
-                  </View>
-                ))}
-              </View>
+              <LineChart
+                data={{
+                  labels: chartLabels,
+                  datasets: chartDatasets,
+                  legend: chartLegend,
+                }}
+                width={Math.max(chartLabels.length * 60, Dimensions.get('window').width - 32)}
+                height={220}
+                chartConfig={{
+                  backgroundColor: '#fff',
+                  backgroundGradientFrom: '#fff',
+                  backgroundGradientTo: '#fff',
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
+                  propsForDots: {
+                    r: '2',
+                    strokeWidth: '1',
+                    stroke: '#fff',
+                  },
+                  propsForBackgroundLines: {
+                    stroke: '#eee',
+                  },
+                }}
+                bezier
+                style={{
+                  borderRadius: 12,
+                  marginVertical: 8,
+                }}
+                fromZero
+                withShadow={false}
+                withDots={false}
+                withInnerLines={true}
+                withOuterLines={true}
+                segments={5}
+              />
             </ScrollView>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 }}>
               {Object.entries(emotions).map(([key, emotion]) => (
@@ -154,7 +223,7 @@ const EmotionsScreen: React.FC = () => {
         </Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <Card style={{ flex: 1, minWidth: 180, margin: 4 }}>
-            <Card.Title title={`${getTimePeriodLabel()} Summary`} subtitle={`Average emotion intensity for ${selectedDate}`} />
+            <Card.Title title={`${getTimePeriodLabel()} Summary`} subtitle={`Average emotion intensity for ${selectedDate.toLocaleDateString()}`} />
             <Card.Content>
               {emotionSummary.map(({ emotion, percentage }) => (
                 <View key={emotion} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { ScrollView, View, StyleSheet, SafeAreaView, Dimensions } from 'react-native'; // Import Dimensions
 import { Card, Text, Switch, DataTable, Badge } from 'react-native-paper';
 
 // Mock sensor data - this will be replaced with WatermelonDB data
@@ -25,14 +25,9 @@ const getSourceBadgeColor = (source: string) => {
   }
 };
 
-// @param: {void} - No parameters.
-// @description: Renders the Dashboard screen with sensor data and grouped view toggle.
-// @returns: {JSX.Element} - The Dashboard screen component.
-// @updates: Displays sensor data in table or grouped view.
 const DashboardScreen = () => {
   const [showGroupedView, setShowGroupedView] = useState(false);
 
-  // Group data by event type for the new view
   const groupedData = mockSensorData.reduce((acc: Record<string, typeof mockSensorData>, record) => {
     if (!acc[record.eventType]) {
       acc[record.eventType] = [];
@@ -41,33 +36,32 @@ const DashboardScreen = () => {
     return acc;
   }, {} as Record<string, typeof mockSensorData>);
 
-  // Get unique timestamps for column headers
   const uniqueTimestamps = Array.from(new Set(mockSensorData.map(record => record.timestamp))).sort();
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={{ padding: 16 }}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text variant="headlineLarge" style={{ fontWeight: 'bold', marginBottom: 4 }}>Dashboard</Text>
         <Text variant="bodyMedium" style={{ color: '#666', marginBottom: 16 }}>
           View your raw sensor data collected from connected devices
         </Text>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Card style={styles.card}>
+        <View style={styles.summaryRow}>
+          <Card style={styles.summaryCard}> {/* Use specific style for summary cards */}
             <Card.Content>
               <Text variant="titleSmall">Total Records</Text>
               <Text variant="headlineMedium" style={{ marginVertical: 4 }}>{mockSensorData.length}</Text>
               <Text variant="bodySmall" style={{ color: '#888' }}>Data points collected today</Text>
             </Card.Content>
           </Card>
-          <Card style={styles.card}>
+          <Card style={styles.summaryCard}>
             <Card.Content>
               <Text variant="titleSmall">Active Sources</Text>
               <Text variant="headlineMedium" style={{ marginVertical: 4 }}>2</Text>
               <Text variant="bodySmall" style={{ color: '#888' }}>Connected devices</Text>
             </Card.Content>
           </Card>
-          <Card style={styles.card}>
+          <Card style={styles.summaryCard}>
             <Card.Content>
               <Text variant="titleSmall">Last Update</Text>
               <Text variant="headlineMedium" style={{ marginVertical: 4 }}>2m ago</Text>
@@ -101,13 +95,13 @@ const DashboardScreen = () => {
                     </DataTable.Header>
                     {Object.entries(groupedData).map(([eventType, records]) => (
                       <DataTable.Row key={eventType}>
-                        <DataTable.Cell>{eventType}</DataTable.Cell>
+                        <DataTable.Cell><Text>{String(eventType)}</Text></DataTable.Cell>
                         {uniqueTimestamps.map(timestamp => {
                           const record = records.find(r => r.timestamp === timestamp);
                           return (
                             <DataTable.Cell key={timestamp} style={{ minWidth: 100, justifyContent: 'center' }}>
                               {record ? (
-                                <Text style={{ fontWeight: 'bold' }}>{record.value}</Text>
+                                <Text style={{ fontWeight: 'bold' }}>{String(record.value)}</Text>
                               ) : (
                                 <Text style={{ color: '#bbb' }}>-</Text>
                               )}
@@ -130,10 +124,12 @@ const DashboardScreen = () => {
                     {mockSensorData.map(record => (
                       <DataTable.Row key={record.id}>
                         <DataTable.Cell><Text style={{ fontSize: 12 }}>{record.timestamp}</Text></DataTable.Cell>
-                        <DataTable.Cell>{record.eventType}</DataTable.Cell>
-                        <DataTable.Cell>{record.value}</DataTable.Cell>
+                        <DataTable.Cell><Text>{String(record.eventType)}</Text></DataTable.Cell>
+                        <DataTable.Cell><Text>{String(record.value)}</Text></DataTable.Cell>
                         <DataTable.Cell>
-                          <Badge style={getSourceBadgeColor(record.source)}>{record.source}</Badge>
+                          <Text style={{ color: '#333', fontWeight: 'bold', fontSize: 12 }}>
+                            {String(record.source)}
+                          </Text>
                         </DataTable.Cell>
                       </DataTable.Row>
                     ))}
@@ -143,17 +139,34 @@ const DashboardScreen = () => {
             </ScrollView>
           </Card.Content>
         </Card>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  safeArea: {
     flex: 1,
-    marginHorizontal: 4,
-    minWidth: 110,
+    backgroundColor: '#f8fafc',
+  },
+  scrollViewContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Ensures even distribution
+    marginBottom: 16,
+    // gap: 8, // Keep gap if it works reliably on your target platforms, otherwise use margins
+  },
+  summaryCard: { // New style for the summary cards
+    flex: 1,
+    // Removed minWidth to allow for more flexibility
+    marginHorizontal: 4, // Use margin for spacing between cards
+    elevation: 2,
+    borderRadius: 12,
   },
 });
 
-export default DashboardScreen; 
+export default DashboardScreen;
