@@ -54,16 +54,21 @@ const chartWidth = Math.max(Dimensions.get('window').width, 480);
 
 const chartLabels = mockDailyData.map(d => d.time);
 
-const emotionKeys = Object.keys(emotions);
+const emotionKeys = Object.keys(emotions); // This is fine as string[] for Object.keys
 
-const chartDatasets = emotionKeys.map((key, idx) => ({
-  data: mockDailyData.map(d => d[key]),
-  color: () => emotions[key].color,
-  strokeWidth: 2,
-  withDots: false,
-}));
+// This line needs correction for 'key' type
+const chartDatasets = emotionKeys.map((key) => {
+  const emotionKey = key as keyof typeof emotions;
+  return {
+    data: mockDailyData.map(d => Number(d[emotionKey as keyof typeof mockDailyData[0]]) || 0),
+    color: () => emotions[emotionKey].color,
+    strokeWidth: 2,
+    withDots: false,
+  };
+});
 
-const chartLegend = emotionKeys.map(key => emotions[key].name);
+// For chartLegend as well:
+const chartLegend = emotionKeys.map(key => emotions[key as keyof typeof emotions].name);
 
 // @param: {void} - No parameters.
 // @description: Renders the Emotions screen with a custom chart and summary.
