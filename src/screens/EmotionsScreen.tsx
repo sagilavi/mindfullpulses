@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
-import { Card, Text, Button, SegmentedButtons, Divider } from 'react-native-paper';
+import { Card, Text, Divider } from 'react-native-paper';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
+import DataCollectionToggle from '../components/DataCollectionToggle';
 
 // Emotion configuration
 const emotions = {
@@ -47,10 +48,6 @@ const mockMonthlyData = [
   { time: 'Week 3', happiness: 0.5, sadness: 0.3, anger: 0.1, fear: 0.1, disgust: 0.0, surprise: 0.0 },
   { time: 'Week 4', happiness: 0.8, sadness: 0.1, anger: 0.0, fear: 0.1, disgust: 0.0, surprise: 0.0 },
 ];
-
-const chartColors = Object.values(emotions).map(e => e.color);
-const chartHeight = 180;
-const chartWidth = Math.max(Dimensions.get('window').width, 480);
 
 const chartLabels = mockDailyData.map(d => d.time);
 
@@ -117,26 +114,39 @@ const EmotionsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
-      <View style={{ padding: 16 }}>
-        <Text variant="headlineLarge" style={{ fontWeight: 'bold', marginBottom: 4 }}>Emotional Timeline</Text>
-        <Text variant="bodyMedium" style={{ color: '#666', marginBottom: 16 }}>
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text variant="headlineLarge" style={styles.title}>Emotional Timeline</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>
           Visualize your emotional patterns throughout different time periods
         </Text>
-        <Card style={{ marginBottom: 16 }}>
+        
+        {/* Data Collection Toggle */}
+        <Card style={styles.toggleCard}>
           <Card.Content>
-            <View style={{ marginBottom: 8 }}>
-              <Text variant="titleMedium" style={{ marginBottom: 8 }}>{getTimePeriodLabel()} Emotion Graph</Text>
-              <View style={{
-                borderWidth: 2,
-                borderColor: '#000',
-                borderRadius: 8,
-                marginBottom: 8,
-                overflow: 'hidden'
-              }}>
+            <View style={styles.toggleContainer}>
+              <Text variant="titleMedium" style={styles.toggleTitle}>
+                Data Collection
+              </Text>
+              <DataCollectionToggle 
+                size="large" 
+                variant="contained" 
+                showStatus={true}
+              />
+            </View>
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.chartCard}>
+          <Card.Content>
+            <View style={styles.chartHeader}>
+              <Text variant="titleMedium" style={styles.chartTitle}>
+                {getTimePeriodLabel()} Emotion Graph
+              </Text>
+              <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={timePeriod}
-                  style={{ width: '100%', fontWeight: 'bold', color: '#000' }}
+                  style={styles.picker}
                   onValueChange={(itemValue: 'daily' | 'weekly' | 'monthly') => setTimePeriod(itemValue)}
                   mode="dropdown"
                 >
@@ -147,20 +157,7 @@ const EmotionsScreen: React.FC = () => {
               </View>
               <Text
                 onPress={() => setShowDatePicker(true)}
-                style={{
-                  borderWidth: 2,
-                  borderColor: '#1976d2',
-                  borderRadius: 8,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  color: '#1976d2',
-                  fontWeight: 'bold',
-                  fontSize: 16,
-                  backgroundColor: '#e3f2fd',
-                  marginBottom: 8,
-                  textAlign: 'center',
-                  overflow: 'hidden'
-                }}
+                style={styles.dateButton}
               >
                 {selectedDate.toLocaleDateString()}
               </Text>
@@ -176,7 +173,7 @@ const EmotionsScreen: React.FC = () => {
                 />
               )}
             </View>
-            <Divider style={{ marginVertical: 12 }} />
+            <Divider style={styles.divider} />
             {/* Simple custom chart: lines for each emotion, dots for values */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <LineChart
@@ -204,10 +201,7 @@ const EmotionsScreen: React.FC = () => {
                   },
                 }}
                 bezier
-                style={{
-                  borderRadius: 12,
-                  marginVertical: 8,
-                }}
+                style={styles.chart}
                 fromZero
                 withShadow={false}
                 withDots={false}
@@ -216,35 +210,36 @@ const EmotionsScreen: React.FC = () => {
                 segments={5}
               />
             </ScrollView>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 }}>
+            <View style={styles.legendContainer}>
               {Object.entries(emotions).map(([key, emotion]) => (
-                <View key={key} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, marginBottom: 4 }}>
-                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: emotion.color, marginRight: 4 }} />
-                  <Text style={{ fontSize: 13 }}>{emotion.emoji} {emotion.name}</Text>
+                <View key={key} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: emotion.color }]} />
+                  <Text style={styles.legendText}>{emotion.emoji} {emotion.name}</Text>
                 </View>
               ))}
             </View>
           </Card.Content>
         </Card>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <Card style={{ flex: 1, minWidth: 180, margin: 4 }}>
+        
+        <View style={styles.summaryContainer}>
+          <Card style={styles.summaryCard}>
             <Card.Title title={`${getTimePeriodLabel()} Summary`} subtitle={`Average emotion intensity for ${selectedDate.toLocaleDateString()}`} />
             <Card.Content>
               {emotionSummary.map(({ emotion, percentage }) => (
-                <View key={emotion} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 20, marginRight: 8 }}>{emotions[emotion as keyof typeof emotions].emoji}</Text>
+                <View key={emotion} style={styles.summaryItem}>
+                  <View style={styles.summaryLeft}>
+                    <Text style={styles.summaryEmoji}>{emotions[emotion as keyof typeof emotions].emoji}</Text>
                     <View>
-                      <Text style={{ fontWeight: 'bold' }}>{emotions[emotion as keyof typeof emotions].name}</Text>
-                      <Text style={{ fontSize: 12, color: '#888' }}>Average intensity</Text>
+                      <Text style={styles.summaryName}>{emotions[emotion as keyof typeof emotions].name}</Text>
+                      <Text style={styles.summaryLabel}>Average intensity</Text>
                     </View>
                   </View>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{percentage}%</Text>
+                  <Text style={styles.summaryPercentage}>{percentage}%</Text>
                 </View>
               ))}
             </Card.Content>
           </Card>
-          <Card style={{ flex: 1, minWidth: 180, margin: 4 }}>
+          <Card style={styles.summaryCard}>
             <Card.Title title="Insights" />
             <Card.Content>
               {timePeriod === 'daily' && (
@@ -279,6 +274,129 @@ const EmotionsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  content: {
+    padding: 16,
+  },
+  title: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: '#666',
+    marginBottom: 16,
+  },
+  toggleCard: {
+    marginBottom: 16,
+  },
+  toggleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleTitle: {
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  chartCard: {
+    marginBottom: 16,
+  },
+  chartHeader: {
+    marginBottom: 8,
+  },
+  chartTitle: {
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 8,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    width: '100%',
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  dateButton: {
+    borderWidth: 2,
+    borderColor: '#1976d2',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    color: '#1976d2',
+    fontWeight: 'bold',
+    fontSize: 16,
+    backgroundColor: '#e3f2fd',
+    marginBottom: 8,
+    textAlign: 'center',
+    overflow: 'hidden',
+  },
+  divider: {
+    marginVertical: 12,
+  },
+  chart: {
+    borderRadius: 12,
+    marginVertical: 8,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4,
+  },
+  legendText: {
+    fontSize: 13,
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  summaryCard: {
+    flex: 1,
+    minWidth: 180,
+    margin: 4,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  summaryName: {
+    fontWeight: 'bold',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#888',
+  },
+  summaryPercentage: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
   insightBoxYellow: {
     backgroundColor: '#fffde7',
     borderColor: '#ffe082',
